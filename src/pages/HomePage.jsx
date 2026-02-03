@@ -507,14 +507,18 @@ function FullscreenImage({ src, alt }) {
   const clampOffset = (x, y, scale) => {
     if (!containerRef.current || !imgRef.current) return { x, y };
 
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const imgRect = imgRef.current.getBoundingClientRect();
+    const container = containerRef.current.getBoundingClientRect();
+    const img = imgRef.current.getBoundingClientRect();
 
-    const scaledWidth = imgRect.width * scale;
-    const scaledHeight = imgRect.height * scale;
+    // Natural image size (before transform)
+    const naturalWidth = img.width / scale;
+    const naturalHeight = img.height / scale;
 
-    const maxX = Math.max(0, (scaledWidth - containerRect.width) / 2);
-    const maxY = Math.max(0, (scaledHeight - containerRect.height) / 2);
+    const scaledWidth = naturalWidth * scale;
+    const scaledHeight = naturalHeight * scale;
+
+    const maxX = Math.max(0, (scaledWidth - container.width) / 2);
+    const maxY = Math.max(0, (scaledHeight - container.height) / 2);
 
     return {
       x: Math.min(maxX, Math.max(-maxX, x)),
