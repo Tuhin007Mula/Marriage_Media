@@ -653,7 +653,7 @@ function FullscreenImage({ src, alt }) {
         style={{
           transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
           transition: isDragging ? "none" : "transform 0.12s ease-out",
-          touchAction: "none",
+          touchAction: isFullscreen ? "none" : "auto",
         }}
         onTouchStart={handleTouchStart}
         onTouchMove={(e) => {
