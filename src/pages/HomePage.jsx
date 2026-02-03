@@ -452,10 +452,56 @@ function VideoPlayer({ src }) {
 }
 
 
+// function FullscreenImage({ src, alt }) {
+//   const containerRef = React.useRef(null);
+//   const [isFullscreen, setIsFullscreen] = React.useState(false);
+
+//   const toggleFullscreen = () => {
+//     if (!document.fullscreenElement) {
+//       containerRef.current.requestFullscreen();
+//     } else {
+//       document.exitFullscreen();
+//     }
+//   };
+
+//   React.useEffect(() => {
+//     const onChange = () => {
+//       setIsFullscreen(!!document.fullscreenElement);
+//     };
+//     document.addEventListener("fullscreenchange", onChange);
+//     return () => document.removeEventListener("fullscreenchange", onChange);
+//   }, []);
+
+//   return (
+//     <div
+//       ref={containerRef}
+//       onClick={toggleFullscreen}
+//       className={`cursor-pointer ${
+//         isFullscreen ? "bg-black flex items-center justify-center" : ""
+//       }`}
+//     >
+//       <img
+//         src={src}
+//         alt={alt}
+//         className={`rounded-lg w-full ${
+//           isFullscreen ? "max-h-screen object-contain" : ""
+//         }`}
+//       />
+//     </div>
+//   );
+// }
+
 function FullscreenImage({ src, alt }) {
   const containerRef = React.useRef(null);
-  const [isFullscreen, setIsFullscreen] = React.useState(false);
+  const imgRef = React.useRef(null);
 
+  const [isFullscreen, setIsFullscreen] = React.useState(false);
+  const [scale, setScale] = React.useState(1);
+  const [lastTap, setLastTap] = React.useState(0);
+
+  const lastDistanceRef = React.useRef(null);
+
+  // Toggle fullscreen
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
       containerRef.current.requestFullscreen();
@@ -464,28 +510,98 @@ function FullscreenImage({ src, alt }) {
     }
   };
 
+  // Close button
+  const exitFullscreen = (e) => {
+    e.stopPropagation();
+    document.exitFullscreen();
+  };
+
+  // Track fullscreen changes
   React.useEffect(() => {
     const onChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      const fs = !!document.fullscreenElement;
+      setIsFullscreen(fs);
+      if (!fs) setScale(1);
     };
     document.addEventListener("fullscreenchange", onChange);
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
 
+  // Double tap to zoom
+  const handleTouchEnd = () => {
+    const now = Date.now();
+    if (now - lastTap < 300) {
+      setScale((s) => (s > 1 ? 1 : 2));
+    }
+    setLastTap(now);
+  };
+
+  // Pinch to zoom
+  const handleTouchMove = (e) => {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+
+      const [t1, t2] = e.touches;
+      const dx = t1.clientX - t2.clientX;
+      const dy = t1.clientY - t2.clientY;
+      const distance = Math.hypot(dx, dy);
+
+      if (lastDistanceRef.current) {
+        const diff = distance - lastDistanceRef.current;
+        setScale((s) => {
+          const next = s + diff / 200;
+          return Math.min(Math.max(next, 1), 4);
+        });
+      }
+
+      lastDistanceRef.current = distance;
+    }
+  };
+
+  const handleTouchEndPinch = () => {
+    lastDistanceRef.current = null;
+  };
+
+  // Desktop double click zoom
+  const handleDoubleClick = (e) => {
+    e.stopPropagation();
+    setScale((s) => (s > 1 ? 1 : 2));
+  };
+
   return (
     <div
       ref={containerRef}
       onClick={toggleFullscreen}
-      className={`cursor-pointer ${
+      className={`relative cursor-pointer ${
         isFullscreen ? "bg-black flex items-center justify-center" : ""
       }`}
     >
+      {/* Close Button */}
+      {isFullscreen && (
+        <button
+          onClick={exitFullscreen}
+          className="absolute top-4 right-4 z-50 bg-black/60 text-white w-9 h-9 rounded-full flex items-center justify-center hover:bg-black/80 transition"
+        >
+          ✕
+        </button>
+      )}
+
       <img
+        ref={imgRef}
         src={src}
         alt={alt}
-        className={`rounded-lg w-full ${
-          isFullscreen ? "max-h-screen object-contain" : ""
+        onDoubleClick={handleDoubleClick}
+        onTouchEnd={handleTouchEnd}
+        onTouchMove={handleTouchMove}
+        onTouchEndCapture={handleTouchEndPinch}
+        className={`rounded-lg transition-transform duration-200 select-none touch-none ${
+          isFullscreen
+            ? "max-h-screen max-w-full object-contain"
+            : "w-full"
         }`}
+        style={{
+          transform: `scale(${scale})`,
+        }}
       />
     </div>
   );
