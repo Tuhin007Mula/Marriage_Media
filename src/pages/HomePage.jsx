@@ -12,6 +12,8 @@ import {
   FiVolumeX,
   FiMaximize,
   FiMinimize,
+  FiRewind,
+  FiFastForward,
 } from "react-icons/fi";
 import { HiOutlinePhotograph } from "react-icons/hi";
 import { FaHeart, FaRegHeart } from "react-icons/fa";
@@ -190,6 +192,25 @@ function VideoPlayer({ src }) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [dragging, setDragging] = useState(false);
 
+  const [seekIndicator, setSeekIndicator] = useState(null); 
+  const [hoverTime, setHoverTime] = useState(null);
+  const [hoverX, setHoverX] = useState(0);
+
+  const handleTimelineMove = (e) => {
+    const rect = progressRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const percent = Math.min(Math.max(x / rect.width, 0), 1);
+    const time = percent * videoRef.current.duration;
+
+    setHoverTime(time);
+    setHoverX(x);
+  };
+
+  const handleTimelineLeave = () => {
+    setHoverTime(null);
+  };
+
+
   /* ---------- SHOW / HIDE CONTROLS ---------- */
   const showControlsTemporarily = () => {
     setShowControls(true);
@@ -301,12 +322,17 @@ function VideoPlayer({ src }) {
   const handleDoubleClick = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
+    const video = videoRef.current;
 
     if (x < rect.width / 2) {
-      videoRef.current.currentTime -= 10;
+      video.currentTime = Math.max(video.currentTime - 10, 0);
+      setSeekIndicator("backward");
     } else {
-      videoRef.current.currentTime += 10;
+      video.currentTime = Math.min(video.currentTime + 10, video.duration);
+      setSeekIndicator("forward");
     }
+
+    setTimeout(() => setSeekIndicator(null), 600);
   };
 
   /* ---------- CLEANUP ---------- */
@@ -347,6 +373,25 @@ function VideoPlayer({ src }) {
         onLoadedMetadata={handleLoadedMetadata}
       />
 
+      {/* DOUBLE TAP SEEK INDICATORS */}
+      {seekIndicator === "backward" && (
+        <div className="absolute left-6 top-1/2 -translate-y-1/2 animate-ping-once pointer-events-none">
+          <div className="flex flex-col items-center text-white">
+            <FiRewind className="text-red-500 text-5xl" />
+            <span className="text-sm">-10s</span>
+          </div>
+        </div>
+      )}
+
+      {seekIndicator === "forward" && (
+        <div className="absolute right-6 top-1/2 -translate-y-1/2 animate-ping-once pointer-events-none">
+          <div className="flex flex-col items-center text-white">
+            <FiFastForward className="text-red-500 text-5xl" />
+            <span className="text-sm">+10s</span>
+          </div>
+        </div>
+      )}
+
       {/* CENTER PLAY / PAUSE */}
       <button
         onClick={togglePlay}
@@ -375,17 +420,32 @@ function VideoPlayer({ src }) {
           {/* TIMELINE */}
           <div
             ref={progressRef}
-            className="relative h-[4px] bg-black cursor-pointer"
+            className="relative h-[4px] bg-black cursor-pointer group"
             onMouseDown={handleMouseDown}
+            onMouseMove={handleTimelineMove}
+            onMouseLeave={handleTimelineLeave}
           >
+            {/* PLAYED */}
             <div
               className="absolute top-0 left-0 h-full bg-red-500"
               style={{ width: `${progress}%` }}
             />
+
+            {/* DRAG HANDLE */}
             <div
-              className="absolute top-1/2 w-3 h-3 bg-red-500 rounded-full -translate-y-1/2"
+              className="absolute top-1/2 w-3 h-3 bg-red-500 rounded-full -translate-y-1/2 transition-transform group-hover:scale-125"
               style={{ left: `calc(${progress}% - 6px)` }}
             />
+
+            {/* HOVER TIME PREVIEW */}
+            {hoverTime !== null && (
+              <div
+                className="absolute -top-8 -translate-x-1/2 bg-black/80 text-white text-[10px] px-2 py-1 rounded transition-opacity duration-150"
+                style={{ left: hoverX }}
+              >
+                {formatTime(hoverTime)}
+              </div>
+            )}
           </div>
 
           {/* BUTTON ROW */}
@@ -450,46 +510,6 @@ function VideoPlayer({ src }) {
     </div>
   );
 }
-
-
-// function FullscreenImage({ src, alt }) {
-//   const containerRef = React.useRef(null);
-//   const [isFullscreen, setIsFullscreen] = React.useState(false);
-
-//   const toggleFullscreen = () => {
-//     if (!document.fullscreenElement) {
-//       containerRef.current.requestFullscreen();
-//     } else {
-//       document.exitFullscreen();
-//     }
-//   };
-
-//   React.useEffect(() => {
-//     const onChange = () => {
-//       setIsFullscreen(!!document.fullscreenElement);
-//     };
-//     document.addEventListener("fullscreenchange", onChange);
-//     return () => document.removeEventListener("fullscreenchange", onChange);
-//   }, []);
-
-//   return (
-//     <div
-//       ref={containerRef}
-//       onClick={toggleFullscreen}
-//       className={`cursor-pointer ${
-//         isFullscreen ? "bg-black flex items-center justify-center" : ""
-//       }`}
-//     >
-//       <img
-//         src={src}
-//         alt={alt}
-//         className={`rounded-lg w-full ${
-//           isFullscreen ? "max-h-screen object-contain" : ""
-//         }`}
-//       />
-//     </div>
-//   );
-// }
 
 function FullscreenImage({ src, alt }) {
   const containerRef = React.useRef(null);
