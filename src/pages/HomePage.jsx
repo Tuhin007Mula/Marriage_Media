@@ -497,9 +497,11 @@ function FullscreenImage({ src, alt }) {
 
   const [isFullscreen, setIsFullscreen] = React.useState(false);
   const [scale, setScale] = React.useState(1);
-  const [lastTap, setLastTap] = React.useState(0);
+  const [offset, setOffset] = React.useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = React.useState(false);
 
   const lastDistanceRef = React.useRef(null);
+  const lastPosRef = React.useRef({ x: 0, y: 0 });
 
   // Toggle fullscreen
   const toggleFullscreen = () => {
@@ -516,31 +518,26 @@ function FullscreenImage({ src, alt }) {
     document.exitFullscreen();
   };
 
-  // Track fullscreen changes
+  // Track fullscreen state
   React.useEffect(() => {
     const onChange = () => {
       const fs = !!document.fullscreenElement;
       setIsFullscreen(fs);
-      if (!fs) setScale(1);
+      if (!fs) {
+        setScale(1);
+        setOffset({ x: 0, y: 0 });
+      }
     };
     document.addEventListener("fullscreenchange", onChange);
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
 
-  // Double tap to zoom
-  const handleTouchEnd = () => {
-    const now = Date.now();
-    if (now - lastTap < 300) {
-      setScale((s) => (s > 1 ? 1 : 2));
-    }
-    setLastTap(now);
-  };
-
-  // Pinch to zoom
+  /* ---------- PINCH TO ZOOM ---------- */
   const handleTouchMove = (e) => {
+    if (!isFullscreen) return;   // ✅ Only in fullscreen
+
     if (e.touches.length === 2) {
       e.preventDefault();
-
       const [t1, t2] = e.touches;
       const dx = t1.clientX - t2.clientX;
       const dy = t1.clientY - t2.clientY;
@@ -558,14 +555,59 @@ function FullscreenImage({ src, alt }) {
     }
   };
 
-  const handleTouchEndPinch = () => {
+  const handleTouchEnd = () => {
     lastDistanceRef.current = null;
+    setIsDragging(false);
   };
 
-  // Desktop double click zoom
-  const handleDoubleClick = (e) => {
-    e.stopPropagation();
-    setScale((s) => (s > 1 ? 1 : 2));
+  /* ---------- DRAG TO PAN (MOBILE) ---------- */
+  const handleTouchStart = (e) => {
+    if (!isFullscreen) return;   // ✅ Only in fullscreen
+
+    if (scale > 1 && e.touches.length === 1) {
+      const t = e.touches[0];
+      lastPosRef.current = { x: t.clientX, y: t.clientY };
+      setIsDragging(true);
+    }
+  };
+
+  const handleTouchMovePan = (e) => {
+    if (!isFullscreen) return;   // ✅ Only in fullscreen
+
+    if (isDragging && scale > 1 && e.touches.length === 1) {
+      e.preventDefault();
+      const t = e.touches[0];
+      const dx = t.clientX - lastPosRef.current.x;
+      const dy = t.clientY - lastPosRef.current.y;
+
+      lastPosRef.current = { x: t.clientX, y: t.clientY };
+      setOffset((o) => ({ x: o.x + dx, y: o.y + dy }));
+    }
+  };
+
+  /* ---------- DRAG TO PAN (DESKTOP) ---------- */
+  const handleMouseDown = (e) => {
+    if (!isFullscreen) return;   // ✅ Only in fullscreen
+
+    if (scale > 1) {
+      setIsDragging(true);
+      lastPosRef.current = { x: e.clientX, y: e.clientY };
+    }
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isFullscreen) return;   // ✅ Only in fullscreen
+
+    if (isDragging && scale > 1) {
+      const dx = e.clientX - lastPosRef.current.x;
+      const dy = e.clientY - lastPosRef.current.y;
+      lastPosRef.current = { x: e.clientX, y: e.clientY };
+      setOffset((o) => ({ x: o.x + dx, y: o.y + dy }));
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
   };
 
   return (
@@ -590,18 +632,24 @@ function FullscreenImage({ src, alt }) {
         ref={imgRef}
         src={src}
         alt={alt}
-        onDoubleClick={handleDoubleClick}
-        onTouchEnd={handleTouchEnd}
-        onTouchMove={handleTouchMove}
-        onTouchEndCapture={handleTouchEndPinch}
-        className={`rounded-lg transition-transform duration-200 select-none touch-none ${
-          isFullscreen
-            ? "max-h-screen max-w-full object-contain"
-            : "w-full"
-        }`}
+        className={`rounded-lg select-none ${
+          isFullscreen ? "max-h-screen max-w-full object-contain" : "w-full"
+        } ${scale > 1 ? "cursor-grab active:cursor-grabbing" : ""}`}
         style={{
-          transform: `scale(${scale})`,
+          transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
+          transition: isDragging ? "none" : "transform 0.1s ease-out",
+          touchAction: "none",
         }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={(e) => {
+          handleTouchMove(e);     // pinch
+          handleTouchMovePan(e);  // pan
+        }}
+        onTouchEnd={handleTouchEnd}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
       />
     </div>
   );
