@@ -503,12 +503,29 @@ function FullscreenImage({ src, alt }) {
   const lastDistanceRef = React.useRef(null);
   const lastPosRef = React.useRef({ x: 0, y: 0 });
 
+  // Clamp image within edges
+  const clampOffset = (x, y, scale) => {
+    if (!containerRef.current || !imgRef.current) return { x, y };
+
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const imgRect = imgRef.current.getBoundingClientRect();
+
+    const scaledWidth = imgRect.width * scale;
+    const scaledHeight = imgRect.height * scale;
+
+    const maxX = Math.max(0, (scaledWidth - containerRect.width) / 2);
+    const maxY = Math.max(0, (scaledHeight - containerRect.height) / 2);
+
+    return {
+      x: Math.min(maxX, Math.max(-maxX, x)),
+      y: Math.min(maxY, Math.max(-maxY, y)),
+    };
+  };
+
   // Toggle fullscreen
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
       containerRef.current.requestFullscreen();
-    } else {
-      document.exitFullscreen();
     }
   };
 
@@ -534,7 +551,7 @@ function FullscreenImage({ src, alt }) {
 
   /* ---------- PINCH TO ZOOM ---------- */
   const handleTouchMove = (e) => {
-    if (!isFullscreen) return;   // ✅ Only in fullscreen
+    if (!isFullscreen) return;
 
     if (e.touches.length === 2) {
       e.preventDefault();
@@ -546,8 +563,9 @@ function FullscreenImage({ src, alt }) {
       if (lastDistanceRef.current) {
         const diff = distance - lastDistanceRef.current;
         setScale((s) => {
-          const next = s + diff / 200;
-          return Math.min(Math.max(next, 1), 4);
+          const next = Math.min(Math.max(s + diff / 200, 1), 4);
+          setOffset((o) => clampOffset(o.x, o.y, next));
+          return next;
         });
       }
 
@@ -562,7 +580,7 @@ function FullscreenImage({ src, alt }) {
 
   /* ---------- DRAG TO PAN (MOBILE) ---------- */
   const handleTouchStart = (e) => {
-    if (!isFullscreen) return;   // ✅ Only in fullscreen
+    if (!isFullscreen) return;
 
     if (scale > 1 && e.touches.length === 1) {
       const t = e.touches[0];
@@ -572,43 +590,36 @@ function FullscreenImage({ src, alt }) {
   };
 
   const handleTouchMovePan = (e) => {
-    if (!isFullscreen) return;   // ✅ Only in fullscreen
+    if (!isFullscreen || !isDragging || scale <= 1 || e.touches.length !== 1) return;
 
-    if (isDragging && scale > 1 && e.touches.length === 1) {
-      e.preventDefault();
-      const t = e.touches[0];
-      const dx = t.clientX - lastPosRef.current.x;
-      const dy = t.clientY - lastPosRef.current.y;
+    e.preventDefault();
+    const t = e.touches[0];
+    const dx = t.clientX - lastPosRef.current.x;
+    const dy = t.clientY - lastPosRef.current.y;
 
-      lastPosRef.current = { x: t.clientX, y: t.clientY };
-      setOffset((o) => ({ x: o.x + dx, y: o.y + dy }));
-    }
+    lastPosRef.current = { x: t.clientX, y: t.clientY };
+
+    setOffset((o) => clampOffset(o.x + dx, o.y + dy, scale));
   };
 
   /* ---------- DRAG TO PAN (DESKTOP) ---------- */
   const handleMouseDown = (e) => {
-    if (!isFullscreen) return;   // ✅ Only in fullscreen
-
-    if (scale > 1) {
-      setIsDragging(true);
-      lastPosRef.current = { x: e.clientX, y: e.clientY };
-    }
+    if (!isFullscreen || scale <= 1) return;
+    setIsDragging(true);
+    lastPosRef.current = { x: e.clientX, y: e.clientY };
   };
 
   const handleMouseMove = (e) => {
-    if (!isFullscreen) return;   // ✅ Only in fullscreen
+    if (!isFullscreen || !isDragging || scale <= 1) return;
 
-    if (isDragging && scale > 1) {
-      const dx = e.clientX - lastPosRef.current.x;
-      const dy = e.clientY - lastPosRef.current.y;
-      lastPosRef.current = { x: e.clientX, y: e.clientY };
-      setOffset((o) => ({ x: o.x + dx, y: o.y + dy }));
-    }
+    const dx = e.clientX - lastPosRef.current.x;
+    const dy = e.clientY - lastPosRef.current.y;
+    lastPosRef.current = { x: e.clientX, y: e.clientY };
+
+    setOffset((o) => clampOffset(o.x + dx, o.y + dy, scale));
   };
 
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
+  const handleMouseUp = () => setIsDragging(false);
 
   return (
     <div
@@ -637,7 +648,7 @@ function FullscreenImage({ src, alt }) {
         } ${scale > 1 ? "cursor-grab active:cursor-grabbing" : ""}`}
         style={{
           transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
-          transition: isDragging ? "none" : "transform 0.1s ease-out",
+          transition: isDragging ? "none" : "transform 0.12s ease-out",
           touchAction: "none",
         }}
         onTouchStart={handleTouchStart}
