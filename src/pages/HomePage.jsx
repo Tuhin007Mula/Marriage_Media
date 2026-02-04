@@ -27,7 +27,6 @@ import PreWeddingIcon from "../assets/icons/prewedding.png";
 import TurmericIcon from "../assets/icons/turmeric.png";
 import WeddingIcon from "../assets/icons/wedding.png";
 import PostWeddingIcon from "../assets/icons/postwedding.png";
-//import popSound from "../assets/sounds/pop.mp3";
 import likePop1 from "../assets/sounds/pop1.mp3";
 import likePop2 from "../assets/sounds/pop2.mp3";
 
@@ -155,110 +154,6 @@ const getMedia = (type, group, personType, t, language) => {
 
 /* ---------------- LOVE BUTTON ---------------- */
 
-// function LoveButton() {
-//   const [liked, setLiked] = useState(false);
-//   return (
-//     <button onClick={() => setLiked(!liked)} className="text-2xl">
-//       {liked ? <FaHeart className="text-red-500" /> : <FaRegHeart />}
-//     </button>
-//   );
-// }
-
-//-----------------------------------------------------
-
-// function LoveButton({ onBurst }) {
-//   const [liked, setLiked] = React.useState(false);
-//   const [animate, setAnimate] = React.useState(false);
-//   const [glow, setGlow] = React.useState(false);
-//   const [soundOn, setSoundOn] = React.useState(false); // muted by default
-
-//   const audioRef = React.useRef(null);
-//   const longPressTimerRef = React.useRef(null);
-//   const longPressTriggeredRef = React.useRef(false);
-
-//   React.useEffect(() => {
-//     audioRef.current = new Audio(popSound);
-//     audioRef.current.volume = 0.5;
-//   }, []);
-
-//   const playPop = () => {
-//     if (soundOn && audioRef.current) {
-//       audioRef.current.currentTime = 0;
-//       audioRef.current.play().catch(() => {});
-//     }
-//   };
-
-//   const triggerLikeEffects = (burstCount = 6) => {
-//     onBurst?.(burstCount);
-
-//     // animations
-//     setAnimate(true);
-//     setTimeout(() => setAnimate(false), 300);
-
-//     if (!liked) {
-//       setGlow(true);
-//       setTimeout(() => setGlow(false), 500);
-
-//       if (navigator.vibrate) {
-//         navigator.vibrate(20);
-//       }
-//     }
-
-//     playPop();
-//   };
-
-//   const handleClick = () => {
-//     setLiked((v) => !v);
-//     triggerLikeEffects(6);
-//   };
-
-//   /* ---------- LONG PRESS ---------- */
-//   const handlePressStart = () => {
-//     longPressTriggeredRef.current = false;
-//     longPressTimerRef.current = setTimeout(() => {
-//       longPressTriggeredRef.current = true;
-//       triggerLikeEffects(18); // 💥 BIG heart burst
-//     }, 450);
-//   };
-
-//   const handlePressEnd = () => {
-//     clearTimeout(longPressTimerRef.current);
-//   };
-
-//   return (
-//     <div className="flex items-center gap-2">
-//       <button
-//         onClick={() => {
-//           if (!longPressTriggeredRef.current) handleClick();
-//         }}
-//         onMouseDown={handlePressStart}
-//         onMouseUp={handlePressEnd}
-//         onMouseLeave={handlePressEnd}
-//         onTouchStart={handlePressStart}
-//         onTouchEnd={handlePressEnd}
-//         className="relative text-2xl"
-//       >
-//         <span className={`inline-flex ${glow ? "heart-glow-ring" : ""}`}>
-//           {liked ? (
-//             <FaHeart className={`text-red-500 ${animate ? "animate-heart-pop" : ""}`} />
-//           ) : (
-//             <FaRegHeart className={`text-red-500 ${animate ? "animate-heart-pop" : ""}`} />
-//           )}
-//         </span>
-//       </button>
-
-//       {/* 🔇 Sound toggle (tiny) */}
-//       <button
-//         onClick={() => setSoundOn((v) => !v)}
-//         className="text-xs text-gray-400 hover:text-gray-600"
-//         title={soundOn ? "Mute sound" : "Enable sound"}
-//       >
-//         {soundOn ? "🔊" : "🔇"}
-//       </button>
-//     </div>
-//   );
-// }
-
 function LoveButton({ onBurst }) {
   const [liked, setLiked] = React.useState(false);
   const [animate, setAnimate] = React.useState(false);
@@ -270,6 +165,7 @@ function LoveButton({ onBurst }) {
   const longPressTimer = React.useRef(null);
   const burstInterval = React.useRef(null);
   const longPressActive = React.useRef(false);
+  const pressingRef = React.useRef(false);
 
   React.useEffect(() => {
     audioSmallRef.current = new Audio(likePop1);
@@ -299,22 +195,6 @@ function LoveButton({ onBurst }) {
     playSound(big);
   };
 
-  // Normal tap
-  // const handleClick = () => {
-  //   if (longPressActive.current) return;
-
-  //   setLiked((prev) => {
-  //     const next = !prev;
-
-  //     // ✅ Only trigger effects when turning ON like
-  //     if (!prev && next) {
-  //       triggerLikeEffects(false);
-  //     }
-
-  //     return next;
-  //   });
-  // };
-
   const handleClick = () => {
     if (longPressActive.current) return;
 
@@ -326,60 +206,50 @@ function LoveButton({ onBurst }) {
     }
   };
 
-  // Start long press
-  // const startLongPress = () => {
-  //   longPressActive.current = false;
-
-  //   longPressTimer.current = setTimeout(() => {
-  //     longPressActive.current = true;
-
-  //     setLiked((prev) => {
-  //       if (!prev) {
-  //         triggerLikeEffects(true); // 💥 big burst + sound only when liking
-  //       }
-  //       return true;
-  //     });
-
-  //     burstInterval.current = setInterval(() => {
-  //       onBurst?.(6);
-  //       playSound(true);
-  //     }, 200);
-  //   }, 350);
-  // };
-
   const startLongPress = () => {
-    longPressActive.current = false;
+    pressingRef.current = true;
+
+    clearTimeout(longPressTimer.current);
+    clearInterval(burstInterval.current);
 
     longPressTimer.current = setTimeout(() => {
-      longPressActive.current = true;
+      if (!pressingRef.current) return;
 
-      if (!liked) {
-        setLiked(true);
-        triggerLikeEffects(true); // 💥 only when turning ON like
-      }
-
+      // Start continuous burst
       burstInterval.current = setInterval(() => {
+        if (!pressingRef.current) return;
+
         onBurst?.(6);
         playSound(true);
-      }, 200);
+      }, 180);
     }, 350);
   };
 
-  // End long press
-  const endLongPress = () => {
-    clearTimeout(longPressTimer.current);
-    clearInterval(burstInterval.current);
-    longPressActive.current = false;
+  const stopLongPress = () => {
+    pressingRef.current = false;
+
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+
+    if (burstInterval.current) {
+      clearInterval(burstInterval.current);
+      burstInterval.current = null;
+    }
   };
 
   return (
     <button
       onClick={handleClick}
       onMouseDown={startLongPress}
-      onMouseUp={endLongPress}
-      onMouseLeave={endLongPress}
+      onMouseUp={stopLongPress}
+      onMouseLeave={stopLongPress}
       onTouchStart={startLongPress}
-      onTouchEnd={endLongPress}
+      onTouchEnd={stopLongPress}
+      onTouchCancel={stopLongPress}
+      onPointerUp={stopLongPress}
+      onPointerCancel={stopLongPress}
       className="relative text-2xl select-none"
     >
       <span className={`inline-flex ${glow ? "heart-glow-ring" : ""}`}>
@@ -1222,54 +1092,14 @@ export default function HomePage() {
 
       {/* SCROLLABLE MEDIA */}
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-10">
-        {/* {media.map((item) => (
-          <div key={item.id} className="space-y-3">
-            <div className="flex items-center gap-3">
-              <img
-                src={item.avatar}
-                alt={activeTab}
-                className="w-8 h-8 rounded-full object-cover"
-              />
-              <span className="font-medium">{item.author}</span>
-            </div>
-
-            {mediaType === "Photos" ? (
-              <FullscreenImage src={item.src} alt={item.author} />
-            ) : (
-              <VideoPlayer src={item.src} />
-            )}
-
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-4">
-                <LoveButton />
-                <ShareButton src={item.src} type={mediaType} />
-              </div>
-
-              <a
-                href={item.src}
-                download
-                className="
-                  flex items-center gap-2 px-4 py-2
-                  border border-red-500 rounded-md text-sm font-medium
-                  text-red-500
-                  hover:bg-red-500 hover:text-white
-                  transition-colors duration-200
-                "
-              >
-                <FiDownload /> {t.download}
-              </a>
-            </div>
-          </div>
-        ))} */}
-        
         {media.map((item) => (
-  <MediaCard
-    key={item.id}
-    item={item}
-    mediaType={mediaType}
-    t={t}
-  />
-))}
+          <MediaCard
+            key={item.id}
+            item={item}
+            mediaType={mediaType}
+            t={t}
+          />
+        ))}
       </div>
     </div>
   );
