@@ -27,6 +27,9 @@ import PreWeddingIcon from "../assets/icons/prewedding.png";
 import TurmericIcon from "../assets/icons/turmeric.png";
 import WeddingIcon from "../assets/icons/wedding.png";
 import PostWeddingIcon from "../assets/icons/postwedding.png";
+//import popSound from "../assets/sounds/pop.mp3";
+import likePop1 from "../assets/sounds/pop1.mp3";
+import likePop2 from "../assets/sounds/pop2.mp3";
 
 const translations = {
   en: {
@@ -161,47 +164,229 @@ const getMedia = (type, group, personType, t, language) => {
 //   );
 // }
 
+//-----------------------------------------------------
+
+// function LoveButton({ onBurst }) {
+//   const [liked, setLiked] = React.useState(false);
+//   const [animate, setAnimate] = React.useState(false);
+//   const [glow, setGlow] = React.useState(false);
+//   const [soundOn, setSoundOn] = React.useState(false); // muted by default
+
+//   const audioRef = React.useRef(null);
+//   const longPressTimerRef = React.useRef(null);
+//   const longPressTriggeredRef = React.useRef(false);
+
+//   React.useEffect(() => {
+//     audioRef.current = new Audio(popSound);
+//     audioRef.current.volume = 0.5;
+//   }, []);
+
+//   const playPop = () => {
+//     if (soundOn && audioRef.current) {
+//       audioRef.current.currentTime = 0;
+//       audioRef.current.play().catch(() => {});
+//     }
+//   };
+
+//   const triggerLikeEffects = (burstCount = 6) => {
+//     onBurst?.(burstCount);
+
+//     // animations
+//     setAnimate(true);
+//     setTimeout(() => setAnimate(false), 300);
+
+//     if (!liked) {
+//       setGlow(true);
+//       setTimeout(() => setGlow(false), 500);
+
+//       if (navigator.vibrate) {
+//         navigator.vibrate(20);
+//       }
+//     }
+
+//     playPop();
+//   };
+
+//   const handleClick = () => {
+//     setLiked((v) => !v);
+//     triggerLikeEffects(6);
+//   };
+
+//   /* ---------- LONG PRESS ---------- */
+//   const handlePressStart = () => {
+//     longPressTriggeredRef.current = false;
+//     longPressTimerRef.current = setTimeout(() => {
+//       longPressTriggeredRef.current = true;
+//       triggerLikeEffects(18); // 💥 BIG heart burst
+//     }, 450);
+//   };
+
+//   const handlePressEnd = () => {
+//     clearTimeout(longPressTimerRef.current);
+//   };
+
+//   return (
+//     <div className="flex items-center gap-2">
+//       <button
+//         onClick={() => {
+//           if (!longPressTriggeredRef.current) handleClick();
+//         }}
+//         onMouseDown={handlePressStart}
+//         onMouseUp={handlePressEnd}
+//         onMouseLeave={handlePressEnd}
+//         onTouchStart={handlePressStart}
+//         onTouchEnd={handlePressEnd}
+//         className="relative text-2xl"
+//       >
+//         <span className={`inline-flex ${glow ? "heart-glow-ring" : ""}`}>
+//           {liked ? (
+//             <FaHeart className={`text-red-500 ${animate ? "animate-heart-pop" : ""}`} />
+//           ) : (
+//             <FaRegHeart className={`text-red-500 ${animate ? "animate-heart-pop" : ""}`} />
+//           )}
+//         </span>
+//       </button>
+
+//       {/* 🔇 Sound toggle (tiny) */}
+//       <button
+//         onClick={() => setSoundOn((v) => !v)}
+//         className="text-xs text-gray-400 hover:text-gray-600"
+//         title={soundOn ? "Mute sound" : "Enable sound"}
+//       >
+//         {soundOn ? "🔊" : "🔇"}
+//       </button>
+//     </div>
+//   );
+// }
+
 function LoveButton({ onBurst }) {
   const [liked, setLiked] = React.useState(false);
   const [animate, setAnimate] = React.useState(false);
   const [glow, setGlow] = React.useState(false);
 
-  const handleClick = () => {
-    const next = !liked;
-    setLiked(next);
-    onBurst?.();
+  const audioSmallRef = React.useRef(null);
+  const audioBigRef = React.useRef(null);
 
-    // ❤️ Pop animation
-    setAnimate(true);
-    setTimeout(() => setAnimate(false), 300);
+  const longPressTimer = React.useRef(null);
+  const burstInterval = React.useRef(null);
+  const longPressActive = React.useRef(false);
 
-    // ✨ Glow ring only when liking (not unliking)
-    if (!liked) {
-      setGlow(true);
-      setTimeout(() => setGlow(false), 500);
+  React.useEffect(() => {
+    audioSmallRef.current = new Audio(likePop1);
+    audioSmallRef.current.volume = 0.5;
 
-      // 📳 Haptic feedback (mobile)
-      if (navigator.vibrate) {
-        navigator.vibrate(20); // tiny tap
-      }
+    audioBigRef.current = new Audio(likePop2);
+    audioBigRef.current.volume = 0.6;
+  }, []);
+
+  const playSound = (big = false) => {
+    const audio = big ? audioBigRef.current : audioSmallRef.current;
+    if (audio) {
+      audio.currentTime = 0;
+      audio.play().catch(() => {});
     }
   };
 
+  const triggerLikeEffects = (big = false) => {
+    onBurst?.(big ? 10 : 5);
+
+    setAnimate(true);
+    setTimeout(() => setAnimate(false), 250);
+
+    setGlow(true);
+    setTimeout(() => setGlow(false), 500);
+
+    playSound(big);
+  };
+
+  // Normal tap
+  // const handleClick = () => {
+  //   if (longPressActive.current) return;
+
+  //   setLiked((prev) => {
+  //     const next = !prev;
+
+  //     // ✅ Only trigger effects when turning ON like
+  //     if (!prev && next) {
+  //       triggerLikeEffects(false);
+  //     }
+
+  //     return next;
+  //   });
+  // };
+
+  const handleClick = () => {
+    if (longPressActive.current) return;
+
+    setLiked((prev) => !prev);
+
+    // ✅ Trigger effects only when liking
+    if (!liked) {
+      triggerLikeEffects(false);
+    }
+  };
+
+  // Start long press
+  // const startLongPress = () => {
+  //   longPressActive.current = false;
+
+  //   longPressTimer.current = setTimeout(() => {
+  //     longPressActive.current = true;
+
+  //     setLiked((prev) => {
+  //       if (!prev) {
+  //         triggerLikeEffects(true); // 💥 big burst + sound only when liking
+  //       }
+  //       return true;
+  //     });
+
+  //     burstInterval.current = setInterval(() => {
+  //       onBurst?.(6);
+  //       playSound(true);
+  //     }, 200);
+  //   }, 350);
+  // };
+
+  const startLongPress = () => {
+    longPressActive.current = false;
+
+    longPressTimer.current = setTimeout(() => {
+      longPressActive.current = true;
+
+      if (!liked) {
+        setLiked(true);
+        triggerLikeEffects(true); // 💥 only when turning ON like
+      }
+
+      burstInterval.current = setInterval(() => {
+        onBurst?.(6);
+        playSound(true);
+      }, 200);
+    }, 350);
+  };
+
+  // End long press
+  const endLongPress = () => {
+    clearTimeout(longPressTimer.current);
+    clearInterval(burstInterval.current);
+    longPressActive.current = false;
+  };
+
   return (
-    <button onClick={handleClick} className="relative text-2xl">
-      <span
-        className={`inline-flex items-center justify-center
-          ${glow ? "heart-glow-ring" : ""}
-        `}
-      >
+    <button
+      onClick={handleClick}
+      onMouseDown={startLongPress}
+      onMouseUp={endLongPress}
+      onMouseLeave={endLongPress}
+      onTouchStart={startLongPress}
+      onTouchEnd={endLongPress}
+      className="relative text-2xl select-none"
+    >
+      <span className={`inline-flex ${glow ? "heart-glow-ring" : ""}`}>
         {liked ? (
-          <FaHeart
-            className={`text-red-500 ${animate ? "animate-heart-pop" : ""}`}
-          />
+          <FaHeart className={`text-red-500 ${animate ? "animate-heart-pop" : ""}`} />
         ) : (
-          <FaRegHeart
-            className={`text-red-500 ${animate ? "animate-heart-pop" : ""}`}
-          />
+          <FaRegHeart className={`text-red-500 ${animate ? "animate-heart-pop" : ""}`} />
         )}
       </span>
     </button>
@@ -792,10 +977,10 @@ function FloatingHearts({ hearts }) {
 function MediaCard({ item, mediaType, t }) {
   const [hearts, setHearts] = React.useState([]);
 
-  const burstHearts = () => {
-    const newHearts = Array.from({ length: 6 }).map((_, i) => ({
-      id: Date.now() + i,
-      x: 5 + Math.random() * 15,
+  const burstHearts = (count = 6) => {
+    const newHearts = Array.from({ length: count }).map((_, i) => ({
+      id: Date.now() + i + Math.random(),
+      x: 5 + Math.random() * 20,
       duration: 900 + Math.random() * 600,
     }));
 
