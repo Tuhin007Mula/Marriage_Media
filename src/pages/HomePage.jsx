@@ -851,7 +851,7 @@ export default function HomePage() {
           </div>
         </header>
 
-        <div className="px-4 py-3 relative">
+        <div className="px-4 py-3 mb-2 relative">
           <FiSearch className="absolute left-8 top-1/2 -translate-y-1/2 text-gray-500" />
           <input
             className="w-full pl-12 pr-4 py-2 rounded-full bg-gray-100"
@@ -859,7 +859,7 @@ export default function HomePage() {
           />
         </div>
 
-        <div className="flex gap-6 px-4 text-sm mb-3 overflow-x-auto whitespace-nowrap no-scrollbar">
+        <div className="flex gap-6 px-4 text-sm mb-2 overflow-x-auto whitespace-nowrap no-scrollbar">
           {tabs.map((tab) => (
             <button
               key={tab.key}
@@ -873,7 +873,7 @@ export default function HomePage() {
               {tab.label}
 
               {activeTab === tab.key && (
-                <span className="absolute left-0 right-0 -bottom-1 h-[2px] bg-red-600" />
+                <span className="absolute left-0 right-0 -bottom-0 h-[2px] bg-red-600" />
               )}
             </button>
           ))}
