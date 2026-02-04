@@ -844,7 +844,7 @@ function FloatingHearts({ hearts }) {
   );
 }
 
-function MediaCard({ item, mediaType, t }) {
+function MediaCard({ item, mediaType, t, activeTab }) {
   const [hearts, setHearts] = React.useState([]);
 
   const burstHearts = (count = 6) => {
@@ -864,6 +864,15 @@ function MediaCard({ item, mediaType, t }) {
   return (
     <div className="space-y-3 relative">
       {/* Media */}
+      <div className="flex items-center gap-3">
+        <img
+          src={item.avatar}
+          alt={activeTab}
+          className="w-8 h-8 rounded-full object-cover"
+        />
+        <span className="font-medium">{item.author}</span>
+      </div>
+
       <div className="relative">
         {mediaType === "Photos" ? (
           <FullscreenImage src={item.src} alt="" />
@@ -1098,6 +1107,7 @@ export default function HomePage() {
             item={item}
             mediaType={mediaType}
             t={t}
+            activeTab={activeTab}
           />
         ))}
       </div>
