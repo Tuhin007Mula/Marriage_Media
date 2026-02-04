@@ -25,3 +25,56 @@
 .animate-ping-once {
   animation: pingOnce 0.6s ease-out forwards;
 }
+
+@keyframes float-heart {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-260px) scale(2.4);
+    opacity: 0;
+  }
+}
+
+.animate-float-heart {
+  animation-name: float-heart;
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
+}
+
+@keyframes heart-pop {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.5);
+  }
+  60% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-heart-pop {
+  animation: heart-pop 300ms ease-out;
+}
+
+@keyframes heart-glow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+.heart-glow-ring {
+  border-radius: 9999px;
+  animation: heart-glow 500ms ease-out;
+}

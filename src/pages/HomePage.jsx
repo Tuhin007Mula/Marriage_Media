@@ -152,11 +152,58 @@ const getMedia = (type, group, personType, t, language) => {
 
 /* ---------------- LOVE BUTTON ---------------- */
 
-function LoveButton() {
-  const [liked, setLiked] = useState(false);
+// function LoveButton() {
+//   const [liked, setLiked] = useState(false);
+//   return (
+//     <button onClick={() => setLiked(!liked)} className="text-2xl">
+//       {liked ? <FaHeart className="text-red-500" /> : <FaRegHeart />}
+//     </button>
+//   );
+// }
+
+function LoveButton({ onBurst }) {
+  const [liked, setLiked] = React.useState(false);
+  const [animate, setAnimate] = React.useState(false);
+  const [glow, setGlow] = React.useState(false);
+
+  const handleClick = () => {
+    const next = !liked;
+    setLiked(next);
+    onBurst?.();
+
+    // ❤️ Pop animation
+    setAnimate(true);
+    setTimeout(() => setAnimate(false), 300);
+
+    // ✨ Glow ring only when liking (not unliking)
+    if (!liked) {
+      setGlow(true);
+      setTimeout(() => setGlow(false), 500);
+
+      // 📳 Haptic feedback (mobile)
+      if (navigator.vibrate) {
+        navigator.vibrate(20); // tiny tap
+      }
+    }
+  };
+
   return (
-    <button onClick={() => setLiked(!liked)} className="text-2xl">
-      {liked ? <FaHeart className="text-red-500" /> : <FaRegHeart />}
+    <button onClick={handleClick} className="relative text-2xl">
+      <span
+        className={`inline-flex items-center justify-center
+          ${glow ? "heart-glow-ring" : ""}
+        `}
+      >
+        {liked ? (
+          <FaHeart
+            className={`text-red-500 ${animate ? "animate-heart-pop" : ""}`}
+          />
+        ) : (
+          <FaRegHeart
+            className={`text-red-500 ${animate ? "animate-heart-pop" : ""}`}
+          />
+        )}
+      </span>
     </button>
   );
 }
@@ -723,6 +770,81 @@ function FullscreenImage({ src, alt }) {
   );
 }
 
+function FloatingHearts({ hearts }) {
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      {hearts.map((heart) => (
+        <span
+          key={heart.id}
+          className="absolute bottom-4 left-4 text-red-500 text-2xl animate-float-heart"
+          style={{
+            left: `${heart.x}%`,
+            animationDuration: `${heart.duration}ms`,
+          }}
+        >
+          ❤️
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function MediaCard({ item, mediaType, t }) {
+  const [hearts, setHearts] = React.useState([]);
+
+  const burstHearts = () => {
+    const newHearts = Array.from({ length: 6 }).map((_, i) => ({
+      id: Date.now() + i,
+      x: 5 + Math.random() * 15,
+      duration: 900 + Math.random() * 600,
+    }));
+
+    setHearts((prev) => [...prev, ...newHearts]);
+
+    setTimeout(() => {
+      setHearts((prev) => prev.slice(newHearts.length));
+    }, 1800);
+  };
+
+  return (
+    <div className="space-y-3 relative">
+      {/* Media */}
+      <div className="relative">
+        {mediaType === "Photos" ? (
+          <FullscreenImage src={item.src} alt="" />
+        ) : (
+          <VideoPlayer src={item.src} />
+        )}
+
+        {/* Floating hearts overlay */}
+        <FloatingHearts hearts={hearts} />
+      </div>
+
+      {/* Actions */}
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-4">
+          <LoveButton onBurst={burstHearts} />
+          <ShareButton src={item.src} />
+        </div>
+
+        <a
+          href={item.src}
+          download
+          className="
+            flex items-center gap-2 px-4 py-2
+            border border-red-500 rounded-md text-sm font-medium
+            text-red-500
+            hover:bg-red-500 hover:text-white
+            transition-colors duration-200
+          "
+        >
+          <FiDownload /> {t.download}
+        </a>
+      </div>
+    </div>
+  );
+}
+
 /* ---------------- APP ---------------- */
 
 export default function HomePage() {
@@ -915,7 +1037,7 @@ export default function HomePage() {
 
       {/* SCROLLABLE MEDIA */}
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-10">
-        {media.map((item) => (
+        {/* {media.map((item) => (
           <div key={item.id} className="space-y-3">
             <div className="flex items-center gap-3">
               <img
@@ -932,8 +1054,12 @@ export default function HomePage() {
               <VideoPlayer src={item.src} />
             )}
 
-            {/* <div className="flex justify-between items-center">
-              <LoveButton />
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-4">
+                <LoveButton />
+                <ShareButton src={item.src} type={mediaType} />
+              </div>
+
               <a
                 href={item.src}
                 download
@@ -947,29 +1073,18 @@ export default function HomePage() {
               >
                 <FiDownload /> {t.download}
               </a>
-            </div> */}
-            <div className="flex justify-between items-center">
-  <div className="flex items-center gap-4">
-    <LoveButton />
-    <ShareButton src={item.src} type={mediaType} />
-  </div>
-
-  <a
-    href={item.src}
-    download
-    className="
-      flex items-center gap-2 px-4 py-2
-      border border-red-500 rounded-md text-sm font-medium
-      text-red-500
-      hover:bg-red-500 hover:text-white
-      transition-colors duration-200
-    "
-  >
-    <FiDownload /> {t.download}
-  </a>
-</div>
+            </div>
           </div>
-        ))}
+        ))} */}
+        
+        {media.map((item) => (
+  <MediaCard
+    key={item.id}
+    item={item}
+    mediaType={mediaType}
+    t={t}
+  />
+))}
       </div>
     </div>
   );
