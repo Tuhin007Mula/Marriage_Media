@@ -106,3 +106,7 @@
   from { transform: scale(0.6); opacity: 1; }
   to { transform: scale(1.6); opacity: 0; }
 }
+
+.scroll-target {
+  scroll-margin-top: 170px; /* adjust if header height changes */
+}

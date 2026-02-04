@@ -922,7 +922,6 @@ export default function HomePage() {
   const [personType, setPersonType] = useState("Bride");
   const [showPersonDropdown, setShowPersonDropdown] = useState(false);
 
-
   const t = translations[language];
 
   const tabs = [
@@ -934,6 +933,21 @@ export default function HomePage() {
   ];
 
   const media = getMedia(mediaType, activeTab, personType, t, language);
+
+  const searchInputRef = React.useRef(null);
+  const itemRefs = React.useRef({});
+  const [searchValue, setSearchValue] = React.useState("");
+  
+  React.useEffect(() => {
+    // Scroll media list to top when group changes
+    window.scrollTo({ top: 0, behavior: "smooth" });
+
+    // Reset search input
+    setSearchValue("");
+
+    // Clear old refs so numbering restarts from 1
+    itemRefs.current = {};
+  }, [activeTab, mediaType, personType]);
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -1072,10 +1086,64 @@ export default function HomePage() {
 
         <div className="px-4 py-3 mb-2 relative">
           <FiSearch className="absolute left-8 top-1/2 -translate-y-1/2 text-gray-500" />
-          <input
+          {/* <input
             className="w-full pl-12 pr-4 py-2 rounded-full bg-gray-100"
             placeholder={`${t.search} ${mediaType === "Photos" ? t.photos : t.videos}`}
-          />
+          /> 
+          ===================================================
+          <input
+  className="w-full pl-12 pr-4 py-2 rounded-full bg-gray-100"
+  placeholder={`${t.search} ${mediaType === "Photos" ? t.photos : t.videos} ${language === "bn" ? "(১, ২, ৩...)" : "(1, 2, 3...)"}`}
+  value={searchValue}
+  onChange={(e) => setSearchValue(e.target.value)}
+  onKeyDown={(e) => {
+    if (e.key === "Enter") {
+      const num = parseInt(searchValue, 10);
+
+      if (!isNaN(num) && itemRefs.current[num]) {
+        itemRefs.current[num].scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+        setSearchValue("");
+      }
+    }
+  }}
+/>*/}
+        <input
+          ref={searchInputRef}
+          className="w-full pl-12 pr-4 py-2 rounded-full bg-gray-100"
+          placeholder={`${t.search} ${
+            mediaType === "Photos" ? t.photos : t.videos
+          } ${language === "bn" ? "(১, ২, ৩...)" : "(1, 2, 3...)"}`}
+          value={searchValue}
+          onChange={(e) => setSearchValue(e.target.value)}
+          onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+
+            // 🔽 close mobile keyboard
+            searchInputRef.current?.blur();
+
+            // 🔢 Bangla → English digits
+            const normalized = searchValue.replace(/[০-৯]/g, (d) =>
+              "০১২৩৪৫৬৭৮৯".indexOf(d)
+            );
+
+            const num = parseInt(normalized, 10);
+
+            if (!isNaN(num) && itemRefs.current[num]) {
+              itemRefs.current[num].scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
+
+              // 🧹 auto clear after jump
+              setSearchValue("");
+            }
+          }
+        }}
+        />  
         </div>
 
         <div className="flex gap-6 px-4 text-sm mb-2 overflow-x-auto whitespace-nowrap no-scrollbar">
@@ -1101,7 +1169,7 @@ export default function HomePage() {
 
       {/* SCROLLABLE MEDIA */}
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-10">
-        {media.map((item) => (
+        {/* {media.map((item) => (
           <MediaCard
             key={item.id}
             item={item}
@@ -1109,6 +1177,20 @@ export default function HomePage() {
             t={t}
             activeTab={activeTab}
           />
+        ))} */}
+        {media.map((item, index) => (
+          <div
+            key={item.id}
+            ref={(el) => (itemRefs.current[index + 1] = el)} // photo number = 1,2,3...
+            className="scroll-target"
+          >
+            <MediaCard
+              item={item}
+              mediaType={mediaType}
+              t={t}
+              activeTab={activeTab}
+            />
+          </div>
         ))}
       </div>
     </div>
