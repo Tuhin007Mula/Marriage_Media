@@ -14,6 +14,7 @@ import {
   FiMinimize,
   FiRewind,
   FiFastForward,
+  FiShare2,
 } from "react-icons/fi";
 import { HiOutlinePhotograph } from "react-icons/hi";
 import { FaHeart, FaRegHeart } from "react-icons/fa";
@@ -156,6 +157,38 @@ function LoveButton() {
   return (
     <button onClick={() => setLiked(!liked)} className="text-2xl">
       {liked ? <FaHeart className="text-red-500" /> : <FaRegHeart />}
+    </button>
+  );
+}
+
+/* ---------------- SHARE BUTTON ---------------- */
+
+function ShareButton({ src, type }) {
+  const handleShare = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: "Check this out",
+          text: "Sharing a beautiful moment 💍",
+          url: src, // public URL works best
+        });
+      } else {
+        await navigator.clipboard.writeText(src);
+        alert("Link copied! You can paste it to share.");
+      }
+    } catch (err) {
+      console.error("Share failed:", err);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleShare}
+      // className="text-2xl text-gray-700 hover:text-red-500 transition"
+      className="text-2xl text-green-500"
+      title="Share"
+    >
+      <FiShare2 strokeWidth={2.5} />
     </button>
   );
 }
@@ -899,7 +932,7 @@ export default function HomePage() {
               <VideoPlayer src={item.src} />
             )}
 
-            <div className="flex justify-between items-center">
+            {/* <div className="flex justify-between items-center">
               <LoveButton />
               <a
                 href={item.src}
@@ -914,7 +947,27 @@ export default function HomePage() {
               >
                 <FiDownload /> {t.download}
               </a>
-            </div>
+            </div> */}
+            <div className="flex justify-between items-center">
+  <div className="flex items-center gap-4">
+    <LoveButton />
+    <ShareButton src={item.src} type={mediaType} />
+  </div>
+
+  <a
+    href={item.src}
+    download
+    className="
+      flex items-center gap-2 px-4 py-2
+      border border-red-500 rounded-md text-sm font-medium
+      text-red-500
+      hover:bg-red-500 hover:text-white
+      transition-colors duration-200
+    "
+  >
+    <FiDownload /> {t.download}
+  </a>
+</div>
           </div>
         ))}
       </div>
